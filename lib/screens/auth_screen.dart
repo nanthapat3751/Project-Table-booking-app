@@ -33,9 +33,9 @@ class AuthScreen extends StatelessWidget {
           .collection('users')
           .doc(cred.user!.uid)
           .set({
-        'email': cred.user!.email,
-        'createdAt': FieldValue.serverTimestamp(), // เวลาที่สมัคร
-      }, SetOptions(merge: true));
+            'email': cred.user!.email,
+            'createdAt': FieldValue.serverTimestamp(), // เวลาที่สมัคร
+          }, SetOptions(merge: true));
       return null; // สมัครสำเร็จ
     } on FirebaseAuthException catch (e) {
       return e.message ?? 'สมัครสมาชิกไม่สำเร็จ';
@@ -60,7 +60,9 @@ class AuthScreen extends StatelessWidget {
         primaryColor: const Color.fromARGB(255, 149, 144, 248), // สีหลักของธีม
         buttonTheme: LoginButtonTheme(
           backgroundColor: const Color.fromARGB(255, 149, 144, 248),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
       ),
       messages: LoginMessages(

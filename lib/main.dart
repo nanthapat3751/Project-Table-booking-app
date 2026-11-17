@@ -10,7 +10,9 @@ import 'screens/auth_screen.dart'; // หน้าล็อกอิน/สม�
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized(); // เตรียมระบบก่อนเริ่มต้นแอป
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform, // เริ่มต้น Firebase ด้วย config ที่เหมาะกับแพลตฟอร์ม
+    options:
+        DefaultFirebaseOptions
+            .currentPlatform, // เริ่มต้น Firebase ด้วย config ที่เหมาะกับแพลตฟอร์ม
   );
   runApp(const MyApp()); // เรียกใช้งานแอปหลัก
 }
@@ -34,11 +36,15 @@ class MyApp extends StatelessWidget {
       ),
       // ตรวจสอบสถานะการล็อกอินของผู้ใช้แบบเรียลไทม์
       home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(), // ฟังการเปลี่ยนแปลงสถานะผู้ใช้
+        stream:
+            FirebaseAuth.instance
+                .authStateChanges(), // ฟังการเปลี่ยนแปลงสถานะผู้ใช้
         builder: (context, snap) {
           // ถ้ายังโหลดข้อมูลไม่เสร็จ แสดงวงกลมโหลด
           if (snap.connectionState != ConnectionState.active) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
           }
           final user = snap.data; // ดึงข้อมูลผู้ใช้
           // ถ้ายังไม่ได้ล็อกอิน แสดงหน้าล็อกอิน

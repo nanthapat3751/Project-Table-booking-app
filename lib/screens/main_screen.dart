@@ -15,34 +15,64 @@ class MainTabs extends StatefulWidget {
 }
 
 class _MainTabsState extends State<MainTabs> {
+  int _index = 0; // แท็บที่เลือกอยู่
+
+  // สร้างหน้าใหม่ทุกครั้งที่สลับแท็บ (เหมือน TabBarView เดิม)
+  // เพื่อให้หน้า "คิวของฉัน" โหลดข้อมูลล่าสุดหลังจองคิว
+  Widget _buildPage(int index) {
+    switch (index) {
+      case 1:
+        return const MenuScreen(); // เมนูอาหาร
+      case 2:
+        return const QueueScreen(); // คิวของฉัน
+      case 3:
+        return const PromotionsScreen(); // ส่วนลด/โปรโมชั่น
+      case 4:
+        return const ProfileScreen(); // โปรไฟล์ผู้ใช้
+      default:
+        return const HomeScreen(); // หน้าหลัก
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 5, // จำนวนแท็บทั้งหมดที่จะแสดง
-      child: Scaffold(
-        backgroundColor: Colors.white, // สีพื้นหลังของหน้าจอ
-        body: const TabBarView(
-          // เนื้อหาที่จะแสดงในแต่ละแท็บ
-          children: [
-            HomeScreen(),        // หน้าหลัก
-            MenuScreen(),        // เมนูอาหาร
-            QueueScreen(),       // คิว/ร้านที่จอง
-            PromotionsScreen(),  // ส่วนลด/โปรโมชั่น
-            ProfileScreen(),     // โปรไฟล์ผู้ใช้
-          ],
-        ),
-        bottomNavigationBar: const TabBar(
-          // แถบเมนูด้านล่าง
-          labelColor: Colors.deepPurple,       // สีของแท็บที่เลือก
-          unselectedLabelColor: Colors.grey,   // สีของแท็บที่ไม่ได้เลือก
-          tabs: [
-            Tab(icon: Icon(Icons.home), text: 'หน้าหลัก'),
-            Tab(icon: Icon(Icons.restaurant_menu), text: 'เมนูอาหาร'),
-            Tab(icon: Icon(Icons.queue), text: 'คิว/ร้านที่จอง'),
-            Tab(icon: Icon(Icons.local_offer), text: 'ส่วนลด'),
-            Tab(icon: Icon(Icons.person), text: 'โปรไฟล์'),
-          ],
-        ),
+    return Scaffold(
+      backgroundColor: Colors.white, // สีพื้นหลังของหน้าจอ
+      body: KeyedSubtree(key: ValueKey(_index), child: _buildPage(_index)),
+      // ใช้ NavigationBar (Material 3) แทน TabBar:
+      // - เว้นพื้นที่ safe area ด้านล่าง (ขีด home ของ iPhone) ให้อัตโนมัติ
+      // - ไม่มีการปัดซ้าย/ขวาเปลี่ยนแท็บ ซึ่งเคยชนกับการปัดยกเลิกคิว
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: (i) => setState(() => _index = i),
+        height: 68,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'หน้าหลัก',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.restaurant_menu),
+            label: 'เมนู',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.queue_outlined),
+            selectedIcon: Icon(Icons.queue),
+            label: 'คิวของฉัน',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.local_offer_outlined),
+            selectedIcon: Icon(Icons.local_offer),
+            label: 'ส่วนลด',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'โปรไฟล์',
+          ),
+        ],
       ),
     );
   }

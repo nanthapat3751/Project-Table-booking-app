@@ -43,7 +43,10 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
 
   // โหลดคูปองของผู้ใช้จาก Firestore
   Future<void> _loadCoupons() async {
-    if (_uid == null) return;
+    if (_uid == null) {
+      setState(() => _loading = false); // เดิมค้างวงกลมโหลดตลอด
+      return;
+    }
     final snap =
         await FirebaseFirestore.instance
             .collection('users')
@@ -108,6 +111,7 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
                 .doc(code)
                 .get();
         final usedVal = usedDoc.exists ? usedDoc['used'] : null;
+        if (!mounted) return;
         if (usedVal == 1 || usedVal == 0) {
           setState(() => _error = 'คุณกรอกโค้ดนี้ไปแล้ว');
           _codeController.clear();
@@ -122,13 +126,18 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
       if (used) {
         setState(() => _error = 'คุณกรอกโค้ดนี้ไปแล้ว');
       } else {
-        final coupon = {'code': code, ..._promoCodes[code]!};
+        final Map<String, dynamic> coupon = {
+          'code': code,
+          ..._promoCodes[code]!,
+        };
         if (_uid != null) {
-          await FirebaseFirestore.instance
+          final ref = await FirebaseFirestore.instance
               .collection('users')
               .doc(_uid)
               .collection('coupons')
               .add(coupon);
+          // เก็บ id ไว้ด้วย — เดิมไม่มี id ทำให้กด "ใช้คูปอง" ทันทีแล้ว crash
+          coupon['id'] = ref.id;
 
           // บันทึกว่าโค้ดนี้ถูกใช้แล้ว
           await FirebaseFirestore.instance
@@ -138,6 +147,7 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
               .doc(code)
               .set({'used': 1, 'createdAt': FieldValue.serverTimestamp()});
         }
+        if (!mounted) return;
         setState(() {
           _userCoupons.add(coupon);
           _error = null;
@@ -150,7 +160,8 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
   }
 
   // ใช้คูปองและลบออกจากรายการ
-  Future<void> _useCoupon(String id) async {
+  Future<void> _useCoupon(String? id) async {
+    if (id == null) return;
     if (_uid != null) {
       final coupon = _userCoupons.firstWhere(
         (c) => c['id'] == id,
@@ -174,13 +185,12 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
             .collection('used_codes')
             .doc(code)
             .set({'used': 0, 'createdAt': FieldValue.serverTimestamp()});
-        setState(() {
-          _usedCodes.add(code);
-        });
+        _usedCodes.add(code);
       }
     }
 
     // ลบคูปองออกจาก state
+    if (!mounted) return;
     setState(() {
       _userCoupons.removeWhere((c) => c['id'] == id);
     });
@@ -274,7 +284,7 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
                   ..._userCoupons.map(
                     (c) => Card(
                       child: ListTile(
-                        title: Text(c['name']),
+                        title: Text(c['name'] ?? ''),
                         subtitle: Text('โค้ด: ${c['code']}'),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,

@@ -43,7 +43,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final PageController _bannerController = PageController(); // ควบคุมการเลื่อน banner
+  final PageController _bannerController =
+      PageController(); // ควบคุมการเลื่อน banner
   int _bannerIndex = 0; // ตำแหน่งปัจจุบันของ banner
 
   @override
@@ -56,33 +57,43 @@ class _HomeScreenState extends State<HomeScreen> {
   // ฟังก์ชันเลื่อน banner แบบวนลูป
   void _autoScrollBanner() {
     if (!mounted) return;
-    setState(() {
-      _bannerIndex = (_bannerIndex + 1) % bannerImages.length;
-      _bannerController.animateToPage(
-        _bannerIndex,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
-      );
-    });
+    if (_bannerController.hasClients) {
+      setState(() {
+        _bannerIndex = (_bannerIndex + 1) % bannerImages.length;
+        _bannerController.animateToPage(
+          _bannerIndex,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
+        );
+      });
+    }
     Future.delayed(const Duration(seconds: 3), _autoScrollBanner);
+  }
+
+  @override
+  void dispose() {
+    _bannerController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     // สร้างรายการร้านชาบูเป็น tiles สำหรับแสดงใน Grid
-    final menuTiles = shabuShops.map((shop) => _Tile(
-      shop['name'] as String,
-      shop['image'] as String,
-      () {
-        // เมื่อกดร้าน จะไปยังหน้าจองโต๊ะ พร้อมส่งข้อมูลร้านไปด้วย
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => BookingScreen(shopInfo: shop),
-          ),
-        );
-      }
-    )).toList();
+    final menuTiles =
+        shabuShops
+            .map(
+              (shop) =>
+                  _Tile(shop['name'] as String, shop['image'] as String, () {
+                    // เมื่อกดร้าน จะไปยังหน้าจองโต๊ะ พร้อมส่งข้อมูลร้านไปด้วย
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BookingScreen(shopInfo: shop),
+                      ),
+                    );
+                  }),
+            )
+            .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -90,80 +101,104 @@ class _HomeScreenState extends State<HomeScreen> {
         foregroundColor: Colors.white,
         title: const Text('ShabuQ'),
       ),
-      body: Column(
-        children: [
-          // แสดง banner โปรโมชั่นแบบเลื่อนอัตโนมัติ
-          SizedBox(
-            height: 160,
-            child: PageView.builder(
-              controller: _bannerController,
-              itemCount: bannerImages.length,
-              itemBuilder: (context, i) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.asset(
-                    bannerImages[i],
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.image_not_supported, size: 48),
+      // เลื่อนได้ทั้งหน้า + จำกัดความกว้างบนจอใหญ่ (เว็บ/เดสก์ท็อป) ไม่ให้ล้นจอ
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: Column(
+              children: [
+                // แสดง banner โปรโมชั่นแบบเลื่อนอัตโนมัติ
+                SizedBox(
+                  height: 160,
+                  child: PageView.builder(
+                    controller: _bannerController,
+                    itemCount: bannerImages.length,
+                    itemBuilder:
+                        (context, i) => Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.asset(
+                              bannerImages[i],
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              errorBuilder:
+                                  (context, error, stackTrace) => Container(
+                                    color: Colors.grey[300],
+                                    child: const Icon(
+                                      Icons.image_not_supported,
+                                      size: 48,
+                                    ),
+                                  ),
+                            ),
+                          ),
+                        ),
+                    onPageChanged: (i) => setState(() => _bannerIndex = i),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // จุดบอกตำแหน่ง banner ปัจจุบัน
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    bannerImages.length,
+                    (i) => Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color:
+                            i == _bannerIndex ? Colors.deepPurple : Colors.grey,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              onPageChanged: (i) => setState(() => _bannerIndex = i),
-            ),
-          ),
-          const SizedBox(height: 8),
-          // จุดบอกตำแหน่ง banner ปัจจุบัน
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              bannerImages.length,
-              (i) => Container(
-                margin: const EdgeInsets.symmetric(horizontal: 2),
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: i == _bannerIndex ? Colors.deepPurple : Colors.grey,
+                const SizedBox(height: 16),
+                // ข้อความหัวข้อ "เลือกร้านชาบู"
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'เลือกร้านชาบู',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          // ข้อความหัวข้อ "เลือกร้านชาบู"
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'เลือกร้านชาบู',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                const SizedBox(height: 17),
+                // แสดงร้านชาบูในรูปแบบ Grid
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: GridView(
+                    // จำนวนคอลัมน์ปรับตามความกว้างจอ (มือถือ 2, จอใหญ่ 3) แทนการล็อก 2 คอลัมน์
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 320,
+                          childAspectRatio: 0.85,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                        ),
+                    shrinkWrap: true, // ให้ GridView ขยายตามเนื้อหา
+                    physics:
+                        const NeverScrollableScrollPhysics(), // ให้ SingleChildScrollView เป็นตัว scroll
+                    children:
+                        menuTiles.map((tile) => _MenuCard(tile: tile)).toList(),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
-          const SizedBox(height: 17),
-          // แสดงร้านชาบูในรูปแบบ Grid
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: GridView.count(
-              crossAxisCount: 2, // จำนวนคอลัมน์
-              shrinkWrap: true, // ให้ GridView ขยายตามเนื้อหา
-              physics: const NeverScrollableScrollPhysics(), // ไม่ให้ scroll ซ้อนกับ Column
-              childAspectRatio: 1.0,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              children: menuTiles.map((tile) => _MenuCard(tile: tile)).toList(),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -204,16 +239,25 @@ class _MenuCard extends StatelessWidget {
                   width: double.infinity,
                   height: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.image_not_supported, size: 48),
-                  ),
+                  errorBuilder:
+                      (context, error, stackTrace) => Container(
+                        color: Colors.grey[300],
+                        child: const Icon(Icons.image_not_supported, size: 48),
+                      ),
                 ),
               ),
             ),
             const SizedBox(height: 8),
             // ชื่อร้าน
-            Text(tile.title, textAlign: TextAlign.center),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+              child: Text(
+                tile.title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ),

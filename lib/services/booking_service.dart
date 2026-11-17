@@ -18,12 +18,13 @@ class BookingService {
     final d = DateTime(date.year, date.month, date.day).toIso8601String();
 
     // ค้นหาเอกสารที่ตรงกับวัน, ช่วงเวลา และหมายเลขโต๊ะ
-    final snap = await _col
-        .where('date', isEqualTo: d)
-        .where('timeSlot', isEqualTo: timeSlot)
-        .where('tableId', isEqualTo: tableId)
-        .limit(1) // จำกัดผลลัพธ์แค่ 1 รายการ
-        .get();
+    final snap =
+        await _col
+            .where('date', isEqualTo: d)
+            .where('timeSlot', isEqualTo: timeSlot)
+            .where('tableId', isEqualTo: tableId)
+            .limit(1) // จำกัดผลลัพธ์แค่ 1 รายการ
+            .get();
 
     // ถ้ามีเอกสารแสดงว่าโต๊ะถูกจองแล้ว
     return snap.docs.isNotEmpty;
@@ -32,7 +33,12 @@ class BookingService {
   // สร้างการจองใหม่และบันทึกลงใน Firestore
   Future<String> create(Booking b) async {
     final data = {
-      'date': DateTime(b.date.year, b.date.month, b.date.day).toIso8601String(), // แปลงวันที่
+      'date':
+          DateTime(
+            b.date.year,
+            b.date.month,
+            b.date.day,
+          ).toIso8601String(), // แปลงวันที่
       'timeSlot': b.timeSlot,
       'tableId': b.tableId,
       'partySize': b.partySize,
@@ -63,35 +69,40 @@ class BookingService {
     final snap = await _col.where('userId', isEqualTo: uid).get();
 
     // แปลงข้อมูลจาก Firestore เป็น Booking objects
-    final items = snap.docs.map((doc) {
-      final d = doc.data();
-      DateTime? created;
-      final raw = d['createdAt'];
+    final items =
+        snap.docs.map((doc) {
+          final d = doc.data();
+          DateTime? created;
+          final raw = d['createdAt'];
 
-      // แปลง timestamp เป็น DateTime
-      if (raw is Timestamp) created = raw.toDate();
-      else if (raw is String) created = DateTime.tryParse(raw);
+          // แปลง timestamp เป็น DateTime
+          if (raw is Timestamp)
+            created = raw.toDate();
+          else if (raw is String)
+            created = DateTime.tryParse(raw);
 
-      return Booking(
-        id: doc.id,
-        date: DateTime.parse(d['date'] as String),
-        timeSlot: d['timeSlot'] as String,
-        tableId: d['tableId'] as int,
-        partySize: d['partySize'] as int,
-        customerName: d['customerName'] as String? ?? '',
-        customerPhone: d['customerPhone'] as String? ?? '',
-        userId: d['userId'] as String,
-        shopName: d['shopName'] as String? ?? '',
-        zone: d['zone'] as String? ?? '',
-        status: d['status'] as String? ?? '',
-        queueLeft: d['queueLeft'] is int ? d['queueLeft'] as int? : null,
-        createdAt: created,
-      );
-    }).toList();
+          return Booking(
+            id: doc.id,
+            date: DateTime.parse(d['date'] as String),
+            timeSlot: d['timeSlot'] as String,
+            tableId: d['tableId'] as int,
+            partySize: d['partySize'] as int,
+            customerName: d['customerName'] as String? ?? '',
+            customerPhone: d['customerPhone'] as String? ?? '',
+            userId: d['userId'] as String,
+            shopName: d['shopName'] as String? ?? '',
+            zone: d['zone'] as String? ?? '',
+            status: d['status'] as String? ?? '',
+            queueLeft: d['queueLeft'] is int ? d['queueLeft'] as int? : null,
+            createdAt: created,
+          );
+        }).toList();
 
     // ถ้าไม่มีเวลาให้ใช้ fallback เพื่อจัดเรียง
     final fallback = DateTime.fromMillisecondsSinceEpoch(0);
-    items.sort((a, b) => (b.createdAt ?? fallback).compareTo(a.createdAt ?? fallback));
+    items.sort(
+      (a, b) => (b.createdAt ?? fallback).compareTo(a.createdAt ?? fallback),
+    );
 
     return items;
   }
