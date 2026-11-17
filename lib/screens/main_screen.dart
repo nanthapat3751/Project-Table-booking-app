@@ -10,12 +10,22 @@ import 'profile_screen.dart';
 class MainTabs extends StatefulWidget {
   const MainTabs({super.key});
 
+  // สลับไปแท็บที่ index (0 = หน้าหลัก) จากหน้าที่อยู่ใน MainTabs
+  static void goTo(BuildContext context, int index) =>
+      _MainTabsState.goTo(context, index);
+
   @override
   State<MainTabs> createState() => _MainTabsState();
 }
 
 class _MainTabsState extends State<MainTabs> {
   int _index = 0; // แท็บที่เลือกอยู่
+
+  // ให้หน้าอื่นสั่งสลับแท็บได้ เช่น ปุ่ม "จองคิว" ในหน้าโปรโมชั่น → หน้าหลัก
+  static void goTo(BuildContext context, int index) {
+    final state = context.findAncestorStateOfType<_MainTabsState>();
+    state?.setState(() => state._index = index);
+  }
 
   // สร้างหน้าใหม่ทุกครั้งที่สลับแท็บ (เหมือน TabBarView เดิม)
   // เพื่อให้หน้า "คิวของฉัน" โหลดข้อมูลล่าสุดหลังจองคิว
@@ -45,7 +55,7 @@ class _MainTabsState extends State<MainTabs> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
-        height: 68,
+        // ใช้ความสูงมาตรฐาน (80) — เดิมตั้ง 68 เตี้ยไป สระล่างภาษาไทยโดนตัด
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: const [
           NavigationDestination(

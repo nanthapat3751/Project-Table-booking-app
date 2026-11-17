@@ -4,9 +4,38 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ftf3/screens/home_screen.dart';
+import 'package:ftf3/screens/main_screen.dart';
 import 'package:ftf3/screens/menu_screen.dart';
+import 'package:ftf3/screens/promotions_screen.dart';
+
+// สร้างหน้าโปรโมชั่น (ส่วนหน้าตา) พร้อมตัวนับว่ากดอะไรไปบ้าง
+class _PromoHarness {
+  final controller = TextEditingController();
+  final submitted = <String?>[];
+  final openedShops = <int>[];
+  int bookTaps = 0;
+
+  Widget build(List<Map<String, dynamic>> coupons, List<String> suggested) {
+    return MaterialApp(
+      home: Scaffold(
+        body: PromotionsView(
+          coupons: coupons,
+          suggestedCodes: suggested,
+          codeController: controller,
+          error: null,
+          claiming: false,
+          onSubmitCode: ([code]) => submitted.add(code),
+          onClearError: () {},
+          onOpenShop: openedShops.add,
+          onBook: () => bookTaps++,
+        ),
+      ),
+    );
+  }
+}
 
 const sizes = {
+  'Galaxy Fold (280x653)': Size(280, 653),
   'iPhone SE (320x568)': Size(320, 568),
   'Android ทั่วไป (360x640)': Size(360, 640),
   'iPhone 14 (390x844)': Size(390, 844),
@@ -128,6 +157,94 @@ void main() {
       }
     });
   }
+
+  for (final entry in sizes.entries) {
+    testWidgets('หน้าโปรโมชั่น (ยังไม่มีคูปอง) ไม่ล้นจอ: ${entry.key}', (
+      tester,
+    ) async {
+      await _setSize(tester, entry.value);
+      final h = _PromoHarness();
+      await tester.pumpWidget(h.build([], ['pay100', 'duo200']));
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+
+      // หน้าว่างต้องแสดงโค้ดแนะนำ แตะแล้วต้องส่งโค้ดนั้นไปรับคูปอง
+      final chip = find.widgetWithText(ActionChip, 'PAY100');
+      await tester.scrollUntilVisible(
+        chip,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('ยังไม่มีคูปอง'), findsOneWidget);
+      await tester.ensureVisible(chip); // ให้เห็นทั้งชิปก่อนแตะ
+      await tester.pumpAndSettle();
+      await tester.tap(chip);
+      expect(h.submitted, ['pay100']);
+
+      // แตะแบนเนอร์โปรร้านแรก → เปิดร้าน index 0
+      await tester.scrollUntilVisible(
+        find.text(shabuShops.first['name'] as String),
+        -200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      final shopName = find.text(shabuShops.first['name'] as String);
+      await tester.ensureVisible(shopName); // ให้เห็นทั้งแบนเนอร์ก่อนแตะ
+      await tester.pumpAndSettle();
+      await tester.tap(shopName);
+      expect(h.openedShops, [0]);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('หน้าโปรโมชั่น (มีคูปอง) ไม่ล้นจอ: ${entry.key}', (
+      tester,
+    ) async {
+      await _setSize(tester, entry.value);
+      final h = _PromoHarness();
+      await tester.pumpWidget(
+        h.build([
+          {'id': 'a', 'code': 'pay100', 'name': 'ส่วนลด 100 บาท', 'value': 100},
+          {'id': 'b', 'code': 'duo200', 'name': 'ส่วนลด 200 บาท', 'value': 200},
+        ], []),
+      );
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      await tester.scrollUntilVisible(
+        find.text('คูปองของฉัน (2)'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      // ปุ่มบนคูปองต้องพาไปจองคิว ไม่ใช่ลบคูปอง
+      final book = find.widgetWithText(TextButton, 'จองคิว').first;
+      await tester.scrollUntilVisible(
+        book,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(book);
+      expect(h.bookTaps, 1);
+      expect(find.text('ส่วนลด 100 บาท'), findsOneWidget); // คูปองยังอยู่
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('MainTabs.goTo สลับแท็บได้ และแถบล่างไม่ล้นจอเล็ก', (
+    tester,
+  ) async {
+    await _setSize(tester, const Size(320, 568));
+    await tester.pumpWidget(const MaterialApp(home: MainTabs()));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(find.byType(HomeScreen), findsOneWidget);
+
+    MainTabs.goTo(tester.element(find.byType(HomeScreen)), 1);
+    await tester.pump();
+    expect(find.byType(MenuScreen), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // รอให้ตัวเลื่อน banner ของหน้าหลักหมดเวลา (หน้าหลักถูกปิดไปแล้ว)
+    await tester.pump(const Duration(seconds: 4));
+  });
 
   test('รูปเมนูทุกรูปที่อ้างถึงมีอยู่ใน assets', () async {
     TestWidgetsFlutterBinding.ensureInitialized();

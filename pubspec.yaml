@@ -40,9 +40,6 @@ dependencies:
   cloud_firestore: ^5.4.4
   firebase_storage: ^12.4.10
 
-  # Login UI + Social login
-  flutter_login: ^5.0.0
-
   # Utils & extras
   shared_preferences: ^2.2.3
   http: ^0.13.6
